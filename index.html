@@ -36,7 +36,7 @@
 					console.log("Subscribed:", subscription);
 
 					// Send subscription to backend
-					const response = await fetch("http://localhost:3000/v1/user/webpush/subscribe", {
+					const response = await fetch("https://api.nxesair.com/v1/user/webpush/subscribe", {
 						method: "POST",
 						body: JSON.stringify(subscription),
 						headers: {
