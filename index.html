@@ -6,7 +6,6 @@
 			name="viewport"
 			content="width=device-width, initial-scale=1.0" />
 		<title>Web Push Notification Test</title>
-		<script src="https://cdn.jsdelivr.net/npm/web-push@4.0.0/dist/web-push.js"></script>
 	</head>
 	<body>
 		<h1>Web Push Notification Test</h1>
@@ -24,8 +23,11 @@
 
 				try {
 					// Register the service worker
-					const registration = await navigator.serviceWorker.register("service-worker.js");
+					await navigator.serviceWorker.register("/service-worker.js");
 					console.log("Service Worker Registered");
+
+					// Wait until the service worker is active
+					const registration = await navigator.serviceWorker.ready;
 
 					// Subscribe to push notifications
 					const subscription = await registration.pushManager.subscribe({
@@ -35,7 +37,7 @@
 
 					console.log("Subscribed:", subscription);
 
-					// Send subscription to backend
+					// Send subscription to the backend server
 					const response = await fetch("https://api.nxesair.com/v1/user/webpush/subscribe", {
 						method: "POST",
 						body: JSON.stringify(subscription),
@@ -44,20 +46,28 @@
 						},
 					});
 
-					if (response.ok) {
-						document.getElementById("status").innerText = "Subscribed successfully!";
-					} else {
+					if (!response.ok) {
 						document.getElementById("status").innerText = "Subscription failed.";
+						return;
 					}
+
+					const json = await response.json();
+
+					// Display the JSON response nicely formatted
+					document.getElementById("status").innerHTML = `
+						<b>Subscription Successful!</b><br />
+						<pre>${JSON.stringify(json, null, 2)}</pre>
+					`;
 				} catch (error) {
 					console.error("Subscription error:", error);
+					document.getElementById("status").innerText = "Subscription error: " + error.message;
 				}
 			});
 
 			// Convert VAPID key to Uint8Array
 			function urlBase64ToUint8Array(base64String) {
 				const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-				const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+				const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
 				const rawData = window.atob(base64);
 				const outputArray = new Uint8Array(rawData.length);
 				for (let i = 0; i < rawData.length; ++i) {
@@ -65,23 +75,6 @@
 				}
 				return outputArray;
 			}
-		</script>
-
-		<!-- Embedded Service Worker -->
-		<script>
-			if ("serviceWorker" in navigator) {
-				navigator.serviceWorker
-					.register("/service-worker.js")
-					.then((reg) => {
-						console.log("Service Worker Registered:", reg);
-					})
-					.catch((err) => console.error("Service Worker Registration Failed:", err));
-			}
-
-			// Push Notification Handler inside Service Worker
-			navigator.serviceWorker.addEventListener("message", (event) => {
-				console.log("Received push message:", event.data);
-			});
 		</script>
 	</body>
 </html>

@@ -5,8 +5,8 @@ self.addEventListener("push", function (event) {
 
 	const options = {
 		body: data,
-		icon: "icon.png", // optional
-		badge: "badge.png", // optional
+		icon: "icon.png", // Optional
+		badge: "badge.png", // Optional
 	};
 
 	event.waitUntil(self.registration.showNotification("Notification Title", options));
