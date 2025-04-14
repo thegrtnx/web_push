@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0" />
+		<title>Web Push Notification Test</title>
+		<script src="https://cdn.jsdelivr.net/npm/web-push@4.0.0/dist/web-push.js"></script>
+	</head>
+	<body>
+		<h1>Web Push Notification Test</h1>
+		<button id="subscribe-btn">Subscribe to Notifications</button>
+		<p id="status"></p>
+
+		<script>
+			const publicVapidKey = "BPcI9q1VD5FZniOJgqzYz2Bbz6NdvND5X1nLoQTLjGc4vcTBmvMJ70bZcjbWMjtIfNr8ROcX9GERZFa7_27LQaY"; // Replace with your actual VAPID key
+
+			document.getElementById("subscribe-btn").addEventListener("click", async () => {
+				if (!("serviceWorker" in navigator)) {
+					alert("Service Workers are not supported in your browser.");
+					return;
+				}
+
+				try {
+					// Register the service worker
+					const registration = await navigator.serviceWorker.register("service-worker.js");
+					console.log("Service Worker Registered");
+
+					// Subscribe to push notifications
+					const subscription = await registration.pushManager.subscribe({
+						userVisibleOnly: true,
+						applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
+					});
+
+					console.log("Subscribed:", subscription);
+
+					// Send subscription to backend
+					const response = await fetch("http://localhost:3000/v1/user/webpush/subscribe", {
+						method: "POST",
+						body: JSON.stringify(subscription),
+						headers: {
+							"Content-Type": "application/json",
+						},
+					});
+
+					if (response.ok) {
+						document.getElementById("status").innerText = "Subscribed successfully!";
+					} else {
+						document.getElementById("status").innerText = "Subscription failed.";
+					}
+				} catch (error) {
+					console.error("Subscription error:", error);
+				}
+			});
+
+			// Convert VAPID key to Uint8Array
+			function urlBase64ToUint8Array(base64String) {
+				const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+				const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+				const rawData = window.atob(base64);
+				const outputArray = new Uint8Array(rawData.length);
+				for (let i = 0; i < rawData.length; ++i) {
+					outputArray[i] = rawData.charCodeAt(i);
+				}
+				return outputArray;
+			}
+		</script>
+
+		<!-- Embedded Service Worker -->
+		<script>
+			if ("serviceWorker" in navigator) {
+				navigator.serviceWorker
+					.register("/service-worker.js")
+					.then((reg) => {
+						console.log("Service Worker Registered:", reg);
+					})
+					.catch((err) => console.error("Service Worker Registration Failed:", err));
+			}
+
+			// Push Notification Handler inside Service Worker
+			navigator.serviceWorker.addEventListener("message", (event) => {
+				console.log("Received push message:", event.data);
+			});
+		</script>
+	</body>
+</html>
